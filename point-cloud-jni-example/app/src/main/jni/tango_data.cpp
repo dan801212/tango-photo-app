@@ -77,6 +77,7 @@ static void onXYZijAvailable(void*, const TangoXYZij* XYZ_ij) {
        origin_maxY = XYZ_ij->xyz[0][1];
        for(int i=0; i<XYZ_ij->xyz_count; i++){
         points.push_back(Eigen::Vector3f(XYZ_ij->xyz[i][0], XYZ_ij->xyz[i][1], XYZ_ij->xyz[i][2]));
+        LOGI("%d: x=%.4f y=%.4f z=%.4f", i, XYZ_ij->xyz[i][0], XYZ_ij->xyz[i][1], XYZ_ij->xyz[i][2]);
         if(XYZ_ij->xyz[i][0]<origin_minX){
         	origin_minX = XYZ_ij->xyz[i][0];
         }
@@ -99,10 +100,10 @@ static void onXYZijAvailable(void*, const TangoXYZij* XYZ_ij) {
                 XYZ_ij->xyz[j][2] = m.outliersV[j][2];
                }
        memcpy(TangoData::GetInstance().depth_buffer, XYZ_ij->xyz, m.outliersV.size() * 3 * sizeof(float));
-       if((m.minX != origin_minX) || (m.maxX != origin_maxX) || (m.minY != origin_minY) || (m.maxY != origin_maxY)){
-        LOGI("minX: %f, maxX: %f, minY: %f, maxY: %f",m.minX, m.maxX, m.minY, m.maxY);
-        LOGI("minX: %f, maxX: %f, minY: %f, maxY: %f",origin_minX, origin_maxX, origin_minY, origin_maxY);
-       }
+//       if((m.minX != origin_minX) || (m.maxX != origin_maxX) || (m.minY != origin_minY) || (m.maxY != origin_maxY)){
+//        LOGI("minX: %f, maxX: %f, minY: %f, maxY: %f",m.minX, m.maxX, m.minY, m.maxY);
+//        LOGI("minX: %f, maxX: %f, minY: %f, maxY: %f",origin_minX, origin_maxX, origin_minY, origin_maxY);
+//       }
        float L_dis = fabs(m.minX-origin_minX);
        float R_dis = fabs(m.maxX-origin_maxX);
        float U_dis = fabs(m.maxY-origin_maxY);
