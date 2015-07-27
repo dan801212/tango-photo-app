@@ -19,17 +19,20 @@
 #include "tango_data.h"
 #include "plane_model.h"
 #include "ransac.h"
+#include "cluster.h"
 
 
 static float prev_depth_timestamp = 0.0f;
-static float LEFT_MIN_BOUND = 0.001f;
-static float RIGHT_MIN_BOUND = 0.1f;
-static float UPPER_MIN_BOUND = 0.1f;
-static float LOWER_MIN_BOUND = 0.1f;
+static float LEFT_MIN_BOUND = 0.01f;
+static float RIGHT_MIN_BOUND = 0.2f;
+static float UPPER_MIN_BOUND = 0.01f;
+static float LOWER_MIN_BOUND = 0.01f;
 static float LEFT_MAX_BOUND = 0.01f;
 static float RIGHT_MAX_BOUND = 0.4f;
 static float UPPER_MAX_BOUND = 0.3f;
 static float LOWER_MAX_BOUND = 0.3f;
+
+static int prev_direction = 0;
 
 // Get status string based on the pose status code.
 static const char* getStatusStringFromStatusCode(TangoPoseStatusType status) {
@@ -63,7 +66,7 @@ static void onXYZijAvailable(void*, const TangoXYZij* XYZ_ij) {
   // Copying out the depth buffer.
   // Note: the XYZ_ij object will be out of scope after this callback is
   // excuted.
-  uint32_t new_size;
+  uint32_t new_size=0;
   float origin_minX, origin_maxX, origin_minY, origin_maxY;
   if (XYZ_ij->xyz_count <= TangoData::GetInstance().max_vertex_count) {
     if (TangoData::GetInstance().depth_buffer != nullptr &&
@@ -75,9 +78,11 @@ static void onXYZijAvailable(void*, const TangoXYZij* XYZ_ij) {
        origin_maxX = XYZ_ij->xyz[0][0];
        origin_minY = XYZ_ij->xyz[0][1];
        origin_maxY = XYZ_ij->xyz[0][1];
+
+       //tranform data to Eigen and find original min/max X,Y
        for(int i=0; i<XYZ_ij->xyz_count; i++){
         points.push_back(Eigen::Vector3f(XYZ_ij->xyz[i][0], XYZ_ij->xyz[i][1], XYZ_ij->xyz[i][2]));
-        LOGI("%d: x=%.4f y=%.4f z=%.4f", i, XYZ_ij->xyz[i][0], XYZ_ij->xyz[i][1], XYZ_ij->xyz[i][2]);
+        //LOGI("%d: x=%.4f y=%.4f z=%.4f", i, XYZ_ij->xyz[i][0], XYZ_ij->xyz[i][1], XYZ_ij->xyz[i][2]);
         if(XYZ_ij->xyz[i][0]<origin_minX){
         	origin_minX = XYZ_ij->xyz[i][0];
         }
@@ -93,40 +98,54 @@ static void onXYZijAvailable(void*, const TangoXYZij* XYZ_ij) {
        }
        PlaneModel m = ransac<PlaneModel>(points,0.05,300);
        //LOGI("Ransasc plane: n= %f  d= %f" , m.n.transpose(), m.d);
-       //LOGI("best: %d, %d",  XYZ_ij->xyz_count, m.outliersV.size());
+//       LOGI("minZ: %.4f, maxZ: %.4f",  m.minZ, m.maxZ);
+
+//       std::vector<std::vector<Eigen::Vector3f>> cluster_data = cluster<std::vector<std::vector<Eigen::Vector3f>>>(m.outliersV);
+//        LOGI("SIZE: %d %d",m.outliersV.size(), cluster_data[0].size());
+       //move rest point cloud back to XYZ_ij
         for(int j=0; j<m.outliersV.size(); j++){
                 XYZ_ij->xyz[j][0] = m.outliersV[j][0];
                 XYZ_ij->xyz[j][1] = m.outliersV[j][1];
                 XYZ_ij->xyz[j][2] = m.outliersV[j][2];
+                //LOGI("%d: z=%.4f",j, m.outliersV[j][2]);
                }
+
        memcpy(TangoData::GetInstance().depth_buffer, XYZ_ij->xyz, m.outliersV.size() * 3 * sizeof(float));
-//       if((m.minX != origin_minX) || (m.maxX != origin_maxX) || (m.minY != origin_minY) || (m.maxY != origin_maxY)){
-//        LOGI("minX: %f, maxX: %f, minY: %f, maxY: %f",m.minX, m.maxX, m.minY, m.maxY);
-//        LOGI("minX: %f, maxX: %f, minY: %f, maxY: %f",origin_minX, origin_maxX, origin_minY, origin_maxY);
-//       }
+       if((m.minX != origin_minX) || (m.maxX != origin_maxX) || (m.minY != origin_minY) || (m.maxY != origin_maxY)){
+        LOGI("minX: %f, maxX: %f, minY: %f, maxY: %f",m.minX, m.maxX, m.minY, m.maxY);
+        LOGI("minX: %f, maxX: %f, minY: %f, maxY: %f",origin_minX, origin_maxX, origin_minY, origin_maxY);
+       }
        float L_dis = fabs(m.minX-origin_minX);
        float R_dis = fabs(m.maxX-origin_maxX);
        float U_dis = fabs(m.maxY-origin_maxY);
        float D_dis = fabs(m.minY-origin_minY);
+       int curr_direction;
 
-       if(((L_dis < LEFT_MIN_BOUND) && (R_dis < RIGHT_MIN_BOUND)) || ((U_dis < UPPER_MIN_BOUND) && (D_dis < LOWER_MIN_BOUND))){
-            TangoData::GetInstance().direction = 6;
-       }else if(((L_dis > LEFT_MAX_BOUND) && (R_dis > RIGHT_MAX_BOUND)) || ((U_dis > UPPER_MAX_BOUND) && (D_dis > LOWER_MAX_BOUND))){
-            TangoData::GetInstance().direction = 5;
-       }else if(L_dis < LEFT_MIN_BOUND){
-            TangoData::GetInstance().direction = 2;
+//       if(((L_dis < LEFT_MIN_BOUND) && (R_dis < RIGHT_MIN_BOUND)) || ((U_dis < UPPER_MIN_BOUND) && (D_dis < LOWER_MIN_BOUND))){
+//            TangoData::GetInstance().direction = 6;
+//       }else if(((L_dis > LEFT_MAX_BOUND) && (R_dis > RIGHT_MAX_BOUND)) || ((U_dis > UPPER_MAX_BOUND) && (D_dis > LOWER_MAX_BOUND))){
+//            TangoData::GetInstance().direction = 5;
+//       }else
+       if(L_dis < LEFT_MIN_BOUND){
+            curr_direction = 1;
        }else if(R_dis < RIGHT_MIN_BOUND){
-            TangoData::GetInstance().direction = 1;
-       }else if(U_dis < UPPER_MIN_BOUND){
-            TangoData::GetInstance().direction = 3;
+            curr_direction = 2;
        }else if(D_dis < LOWER_MIN_BOUND){
-            TangoData::GetInstance().direction = 4;
+            curr_direction = 3;
+       }else if(U_dis < UPPER_MIN_BOUND){
+            curr_direction = 4;
        }else{
-            TangoData::GetInstance().direction = 7;
+            curr_direction = 7;
        }
 
        new_size = m.outliersV.size();
 
+        if (prev_direction == curr_direction){
+             TangoData::GetInstance().direction = curr_direction;
+        }else{
+            TangoData::GetInstance().direction=0;
+        }
+        prev_direction = curr_direction;
         //memcpy(TangoData::GetInstance().depth_buffer, XYZ_ij->xyz, XYZ_ij->xyz_count * 3 * sizeof(float));
 
 //       LOGI("%d, %d, %d, %d",XYZ_ij->xyz_count, XYZ_ij->ij_rows, XYZ_ij->ij_cols, XYZ_ij->ij);

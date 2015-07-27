@@ -69,7 +69,8 @@ tango_gl::VideoOverlay* video_overlay;
 
 GLuint small_screen_width;
 GLuint small_screen_height;
-
+GLuint temp_width;
+GLuint temp_height;
 // Single finger touch positional values.
 // First element in the array is x-axis touching position.
 // Second element in the array is y-axis touching position.
@@ -295,6 +296,8 @@ bool CameraInitGlContent() {
 bool CameraSetupGraphics(int w, int h) {
   small_screen_width = w;
   small_screen_height = h;
+  temp_height = h;
+  temp_width = w;
 
   if (h == 0) {
     LOGE("Setup graphic height not valid");
@@ -353,6 +356,62 @@ bool CameraRenderFrame() {
 
   //6.25
   if(saveNextFrame){
+
+  //change to smaller screen size
+  small_screen_width = 600;
+  small_screen_height = 400;
+
+    if (small_screen_height == 0) {
+      LOGE("Setup graphic height not valid");
+      return false;
+    }
+    cam2->SetAspectRatio(static_cast<float>(small_screen_width) / static_cast<float>(small_screen_height));
+    glClearColor(0.3f, 0.3f, 0.3f, 1.0f);
+
+    if(pixel != NULL){
+    free(pixel);
+    free(topdown_pixel);
+    }
+         pixel = (unsigned char *) calloc(small_screen_width * small_screen_height * 3, sizeof(unsigned char)); //3 components
+         topdown_pixel = (unsigned char *) calloc(small_screen_width * small_screen_height * 3, sizeof(unsigned char));
+         if(pixel == NULL)  {
+                      LOGE("memory not allocated!");
+                           return false;
+                           }
+
+        // Create and bind the framebuffer
+        glGenFramebuffers(1, &fbuffer);
+        glBindFramebuffer(GL_FRAMEBUFFER, fbuffer);
+
+        glGenRenderbuffers(2, rbuffers);
+        glBindRenderbuffer(GL_RENDERBUFFER, rbuffers[0]);
+
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_RGB565, small_screen_width, small_screen_height);
+        glBindRenderbuffer(GL_RENDERBUFFER, rbuffers[1]);
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, small_screen_width, small_screen_height);
+
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, rbuffers[0]);
+        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT,  GL_RENDERBUFFER, rbuffers[1]);
+
+        if(glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+                                                        LOGE("Framebuffer not complete");
+                                                        return false;
+        }
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+      glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+
+      /// Viewport set to full screen, and camera at origin
+      /// facing on negative z direction, y axis is the up
+      /// vector of the camera.
+      glViewport(0, 0, small_screen_width, small_screen_height);
+
+      // UpdateColorTexture() updates color camera's
+      // texture and timestamp.
+      TangoData::GetInstance().UpdateColorTexture();
+      video_overlay->CameraRender(glm::mat4(1.0f), glm::mat4(1.0f));
+
   // save the output of glReadPixels somewhere... I'm a noob about JNI however, so I leave this part as an exercise for the reader ;-)
   glReadPixels(0, 0, small_screen_width, small_screen_height, GL_RGB, GL_UNSIGNED_BYTE, pixel);
   int end = small_screen_width * small_screen_height * 3 - 1;
@@ -397,6 +456,9 @@ bool CameraRenderFrame() {
   saveNextFrame = false;
   }
 
+  //change back to normal screen size
+    small_screen_height = temp_height;
+    small_screen_width = temp_width;
 
   return true;
 }

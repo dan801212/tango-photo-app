@@ -263,7 +263,8 @@
  /Users/dan/Github/tango-photo-app/point-cloud-jni-example/app/src/main/jni/../../../../../third-party/eigen/Eigen/src/Eigenvalues/./RealQZ.h \
  /Users/dan/Github/tango-photo-app/point-cloud-jni-example/app/src/main/jni/../../../../../third-party/eigen/Eigen/src/Eigenvalues/MatrixBaseEigenvalues.h \
  /Users/dan/Github/tango-photo-app/point-cloud-jni-example/app/src/main/jni/ransac.h \
- /Applications/android-sdks/android-ndk-r10e/sources/cxx-stl/gnu-libstdc++/4.8/include/set
+ /Applications/android-sdks/android-ndk-r10e/sources/cxx-stl/gnu-libstdc++/4.8/include/set \
+ /Users/dan/Github/tango-photo-app/point-cloud-jni-example/app/src/main/jni/cluster.h
 
 /Applications/android-sdks/android-ndk-r10e/sources/cxx-stl/gnu-libstdc++/4.8/include/vector:
 
@@ -792,3 +793,5 @@
 /Users/dan/Github/tango-photo-app/point-cloud-jni-example/app/src/main/jni/ransac.h:
 
 /Applications/android-sdks/android-ndk-r10e/sources/cxx-stl/gnu-libstdc++/4.8/include/set:
+
+/Users/dan/Github/tango-photo-app/point-cloud-jni-example/app/src/main/jni/cluster.h:

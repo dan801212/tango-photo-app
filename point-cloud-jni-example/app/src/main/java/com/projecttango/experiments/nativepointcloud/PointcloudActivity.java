@@ -29,12 +29,18 @@ import android.view.Display;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.CompoundButton;
+import android.widget.ToggleButton;
 import android.speech.tts.TextToSpeech;
 
 import java.util.Locale;
+import java.lang.Thread;
 
 /**
  * Main activity shows point cloud scene.
@@ -65,8 +71,8 @@ public class PointcloudActivity extends Activity implements OnClickListener {
   private float mScreenDiagonalDist = 0.0f;
 
   private TextToSpeech mTts;
-  private String[] text = {"Detect", "Move left", "Move right", "Move down", "Move up", "Move closer", "Move further", "Ready"};
-
+  private String[] text = {"Waiting", "Move left", "Move right", "Move down", "Move up", "Move closer", "Move further", "Ready"};
+  volatile boolean threadStop = false;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -129,19 +135,40 @@ public class PointcloudActivity extends Activity implements OnClickListener {
     } catch (NameNotFoundException e) {
       e.printStackTrace();
     }
-//
-//    text[1] = "Move Left";
-//    text[2] = "Move Right";
-//    text[3] = "Move Up";
-//    text[4] = "Move Down";
-//    text[5] = "Move Further";
-//    text[6] = "Move Closer";
 
     // Buttons for selecting camera view and Set up button click listeners.
     findViewById(R.id.first_person_button).setOnClickListener(this);
     findViewById(R.id.third_person_button).setOnClickListener(this);
     findViewById(R.id.top_down_button).setOnClickListener(this);
     findViewById(R.id.gl_camera_view).setOnClickListener(this);
+    ToggleButton toggle = (ToggleButton) findViewById(R.id.toggleButton);
+    toggle.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+      public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+        if (isChecked) {
+          // The toggle is enabled
+          findViewById(R.id.gl_surface_view).setVisibility(View.VISIBLE);
+          findViewById(R.id.first_person_button).setVisibility(View.VISIBLE);
+          findViewById(R.id.third_person_button).setVisibility(View.VISIBLE);
+          findViewById(R.id.top_down_button).setVisibility(View.VISIBLE);
+
+          ViewGroup.LayoutParams layoutParams=findViewById(R.id.gl_camera_view).getLayoutParams();
+          layoutParams.width=600;
+          layoutParams.height=400;
+          findViewById(R.id.gl_camera_view).setLayoutParams(layoutParams);
+
+        } else {
+          // The toggle is disabled
+          findViewById(R.id.gl_surface_view).setVisibility(View.INVISIBLE);
+          findViewById(R.id.first_person_button).setVisibility(View.INVISIBLE);
+          findViewById(R.id.third_person_button).setVisibility(View.INVISIBLE);
+          findViewById(R.id.top_down_button).setVisibility(View.INVISIBLE);
+
+          //ViewGroup.LayoutParams layoutParams=findViewById(R.id.gl_camera_view).getLayoutParams();
+
+          findViewById(R.id.gl_camera_view).setLayoutParams(new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+        }
+      }
+    });
 
     // OpenGL view where all of the graphics are drawn.
     camera_GLView = (GLSurfaceView) findViewById(R.id.gl_camera_view);
@@ -151,6 +178,7 @@ public class PointcloudActivity extends Activity implements OnClickListener {
     mGLView.setRenderer(new Renderer());
 
     startUIThread();
+
   }
 
   @Override
@@ -162,6 +190,7 @@ public class PointcloudActivity extends Activity implements OnClickListener {
     TangoJNINative.disconnect();
     TangoJNINative.freeGLContent();
     mIsPermissionIntentCalled = false;
+
   }
 
   @Override
@@ -176,6 +205,7 @@ public class PointcloudActivity extends Activity implements OnClickListener {
       intent.putExtra(EXTRA_KEY_PERMISSIONTYPE, EXTRA_VALUE_MOTION_TRACKING);
       startActivityForResult(intent, 0);
     }
+
   }
 
   @Override
@@ -197,6 +227,7 @@ public class PointcloudActivity extends Activity implements OnClickListener {
       break;
       case R.id.gl_camera_view:
         TangoJNINative.saveFrame();
+        mTts.speak("Taking Photo", TextToSpeech.QUEUE_FLUSH, null);
         break;
     default:
       return;
@@ -309,7 +340,8 @@ public class PointcloudActivity extends Activity implements OnClickListener {
     new Thread(new Runnable() {
       @Override
         public void run() {
-          while (true) {
+
+        while (true) {
             try {
               Thread.sleep(kTextUpdateIntervalms);
               runOnUiThread(new Runnable() {
@@ -332,8 +364,11 @@ public class PointcloudActivity extends Activity implements OnClickListener {
             } catch (Exception e) {
               e.printStackTrace();
             }
+
           }
         }
     }).start();
   }
+
+
 }

@@ -23,18 +23,27 @@
         android:id="@+id/gl_surface_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_gravity="bottom" />
+        android:layout_gravity="bottom"
+        android:visibility="invisible" />
 
     <android.opengl.GLSurfaceView
         android:id="@+id/gl_camera_view"
-        android:layout_width="200dp"
-        android:layout_height="140dp"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:layout_alignParentTop="true"
         android:layout_alignEnd="@+id/view_button"
         android:layout_alignParentLeft="false"
         android:layout_alignParentBottom="false"
         android:layout_alignParentRight="true"
-        android:layout_gravity="right|top" />
+        android:layout_gravity="left|top" />
+
+        <ToggleButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="New ToggleButton"
+            android:id="@+id/toggleButton"
+            android:layout_gravity="left|bottom"
+            android:checked="false" />
     </FrameLayout>
     <LinearLayout
         android:id="@+id/linearLayout1"
@@ -181,7 +190,8 @@
         android:layout_marginBottom="5dp"
         android:layout_marginRight="5dp"
         android:paddingRight="5dp"
-        android:text="@string/first_person" />
+        android:text="@string/first_person"
+        android:visibility="invisible" />
 
     <Button
         android:id="@+id/top_down_button"
@@ -191,7 +201,8 @@
         android:layout_alignParentRight="true"
         android:layout_marginRight="5dp"
         android:paddingRight="5dp"
-        android:text="@string/top_down" />
+        android:text="@string/top_down"
+        android:visibility="invisible" />
 
     <Button
         android:id="@+id/third_person_button"
@@ -202,7 +213,8 @@
         android:layout_marginBottom="5dp"
         android:layout_marginRight="5dp"
         android:paddingRight="5dp"
-        android:text="@string/third_person" />
+        android:text="@string/third_person"
+        android:visibility="invisible" />
 
 
 </RelativeLayout>

@@ -69,4 +69,5 @@ public class TangoJNINative {
   public static native void saveFrame();
 
   public static native int getDirection();
+
 }
