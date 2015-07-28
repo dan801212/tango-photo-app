@@ -3,7 +3,7 @@ This app is for helping blind or visual-impaired people to aim properly while th
 
 1. Develope Environment:
   
-  To run the program, you need to download Android Studio as well as Android NDK. Then modify the NDK path inside local.property file to you own directory.
+  To run the program, you need to download Android Studio as well as Android NDK. Then modify the NDK path inside local.properties file to you own directory.
 
 2. Project intro.:
 
