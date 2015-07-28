@@ -7,7 +7,7 @@ This app is for helping blind or visual-impaired people to aim properly while th
 
 2. Project intro.:
 
-  By using NDK, this project combined with Java and Cpp part.
+  By using NDK, this project combined with Java and C++ part.
   Function regarding to Android are mainly in Java, such as UI, thread, or activity.
   While C++ part contains Tango API including data retrieving, processing, and rendering(by Opengl-ES).
   
